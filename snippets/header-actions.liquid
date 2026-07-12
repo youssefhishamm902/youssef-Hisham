@@ -84,9 +84,11 @@
     %}
     <div
       class="account-button header-actions__action{% if display_style == 'text' %} account-button--text{% endif %} color-custom-popover"
-    >
+      >
       <shopify-account
-        menu="{{ customer_account_menu }}"
+        {% if customer_account_menu != blank %}
+          menu="{{ customer_account_menu }}"
+        {% endif %}
         {% if account_actions_style != blank %}
           style="{{ account_actions_style }}"
         {% endif %}

@@ -1,0 +1,198 @@
+{{ 'gifts-page.css' | asset_url | stylesheet_tag }}
+
+<section
+  id="GiftsBanner-{{ section.id }}"
+  class="gifts-banner"
+  aria-labelledby="GiftsBannerTitle-{{ section.id }}"
+>
+  <div class="gifts-banner__campaign-bar">
+    <div class="gifts-banner__brand">
+      {% if section.settings.logo != blank %}
+        {{
+          section.settings.logo
+          | image_url: width: 240
+          | image_tag:
+            widths: '120, 180, 240',
+            sizes: '120px',
+            loading: 'eager',
+            alt: section.settings.logo.alt | default: section.settings.logo_text
+        }}
+      {% else %}
+        <span>{{ section.settings.logo_text | escape }}</span>
+      {% endif %}
+    </div>
+
+    {% if section.settings.top_message != blank %}
+      <p class="gifts-banner__top-message">{{ section.settings.top_message | escape }}</p>
+    {% endif %}
+
+    {% if section.settings.top_button_label != blank %}
+      <a
+        class="gifts-button gifts-button--yellow"
+        href="{{ section.settings.top_button_link | default: '#GiftsGrid' }}"
+      >
+        <span>{{ section.settings.top_button_label | escape }}</span>
+        <span class="gifts-button__arrow" aria-hidden="true">→</span>
+      </a>
+    {% endif %}
+  </div>
+
+  <div class="gifts-banner__hero">
+    {% if section.settings.desktop_image != blank %}
+      <picture class="gifts-banner__picture">
+        {% if section.settings.mobile_image != blank %}
+          <source
+            media="(max-width: 749px)"
+            srcset="{{ section.settings.mobile_image | image_url: width: 900 }}"
+          >
+        {% endif %}
+
+        {{
+          section.settings.desktop_image
+          | image_url: width: 2400
+          | image_tag:
+            widths: '750, 1100, 1500, 2000, 2400',
+            sizes: '100vw',
+            loading: 'eager',
+            fetchpriority: 'high',
+            class: 'gifts-banner__image',
+            alt: section.settings.desktop_image.alt | default: section.settings.heading
+        }}
+      </picture>
+    {% else %}
+      <div class="gifts-banner__image-placeholder">
+        {{ 'lifestyle-2' | placeholder_svg_tag: 'placeholder-svg' }}
+        <span>Banner image</span>
+      </div>
+    {% endif %}
+
+    <div class="gifts-banner__content gifts-banner__content--{{ section.settings.content_position }}">
+      {% if section.settings.heading != blank %}
+        <h1 id="GiftsBannerTitle-{{ section.id }}" class="gifts-banner__heading">
+          {{ section.settings.heading | escape }}
+        </h1>
+      {% endif %}
+
+      {% if section.settings.description != blank %}
+        <div class="gifts-banner__description rte">
+          {{ section.settings.description }}
+        </div>
+      {% endif %}
+
+      {% if section.settings.cta_label != blank %}
+        <a
+          class="gifts-button gifts-button--black"
+          href="{{ section.settings.cta_link | default: '#GiftsGrid' }}"
+        >
+          <span>{{ section.settings.cta_label | escape }}</span>
+          <span class="gifts-button__arrow" aria-hidden="true">→</span>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if section.settings.bottom_note != blank %}
+    <p class="gifts-banner__bottom-note">{{ section.settings.bottom_note | escape }}</p>
+  {% endif %}
+</section>
+
+{% schema %}
+{
+  "name": "Gifts banner",
+  "tag": "section",
+  "class": "section-gifts-banner",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Campaign header"
+    },
+    {
+      "type": "image_picker",
+      "id": "logo",
+      "label": "Logo image"
+    },
+    {
+      "type": "text",
+      "id": "logo_text",
+      "label": "Logo text",
+      "default": "TISSO VISON"
+    },
+    {
+      "type": "text",
+      "id": "top_message",
+      "label": "Top message",
+      "default": "Find the ideal gift for your loved ones."
+    },
+    {
+      "type": "text",
+      "id": "top_button_label",
+      "label": "Top button label",
+      "default": "CHOOSE GIFT"
+    },
+    {
+      "type": "url",
+      "id": "top_button_link",
+      "label": "Top button link"
+    },
+    {
+      "type": "header",
+      "content": "Hero content"
+    },
+    {
+      "type": "image_picker",
+      "id": "desktop_image",
+      "label": "Desktop banner image"
+    },
+    {
+      "type": "image_picker",
+      "id": "mobile_image",
+      "label": "Mobile banner image"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "The Gift Guide"
+    },
+    {
+      "type": "richtext",
+      "id": "description",
+      "label": "Description",
+      "default": "<p>Discover joy: Your ultimate holiday gift destination. Explore our curated selection and find the perfect gifts to delight your loved ones this holiday season.</p>"
+    },
+    {
+      "type": "text",
+      "id": "cta_label",
+      "label": "Button label",
+      "default": "SHOP NOW"
+    },
+    {
+      "type": "url",
+      "id": "cta_link",
+      "label": "Button link"
+    },
+    {
+      "type": "select",
+      "id": "content_position",
+      "label": "Content position",
+      "default": "left",
+      "options": [
+        { "value": "left", "label": "Left" },
+        { "value": "center", "label": "Center" },
+        { "value": "right", "label": "Right" }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "bottom_note",
+      "label": "Bottom note",
+      "default": "SUSTAINABLE, ETHICALLY MADE CLOTHES IN SIZES XXS TO 6XL"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Gifts banner"
+    }
+  ]
+}
+{% endschema %}

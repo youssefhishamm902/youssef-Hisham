@@ -106,13 +106,19 @@ export class OverflowList extends DeclarativeShadowElement {
       placeholder,
     };
 
-    // Add event listener for reflow requests
-    this.addEventListener(
-      'reflow',
-      /** @param {CustomEvent<{lastVisibleElement?: HTMLElement}>} event */ (event) => {
-        this.#reflowItems(0, event.detail.lastVisibleElement);
-      }
-    );
+   // Add event listener for reflow requests
+this.addEventListener(
+  'reflow',
+  /** @param {Event | CustomEvent<{lastVisibleElement?: HTMLElement}>} event */ (event) => {
+    const lastVisibleElement =
+      event instanceof CustomEvent &&
+      event.detail?.lastVisibleElement instanceof HTMLElement
+        ? event.detail.lastVisibleElement
+        : null;
+
+    this.#reflowItems(0, lastVisibleElement);
+  }
+);
 
     // When <overflow-list> is dynamically injected, the browser doesn't remove its <template> automatically.
     // In theory, we could get rid of it now, or in DeclarativeShadowElement, but that would invalidate the layout.

@@ -7,6 +7,7 @@
   const DEFAULT_SUCCESS_MESSAGE = 'Added to cart.';
   const DEFAULT_ERROR_MESSAGE = 'The item could not be added.';
   const BUTTON_RESET_DELAY = 1400;
+  const CART_LINES_UPDATE_EVENT = 'shopify:cart:lines-update';
 
   const SELECTORS = {
     popup: '[data-gift-popup]',
@@ -24,8 +25,7 @@
     addLabel: '[data-gift-add-label]',
     status: '[data-gift-status]',
     grid: '[data-gifts-grid]',
-    cartIcon: 'cart-icon',
-    cartCount: '[data-cart-count], .cart-count-bubble span[aria-hidden="true"], .cart-bubble__text-count',
+    cartItems: 'cart-items-component[data-section-id]',
   };
 
   /**
@@ -37,11 +37,7 @@
    *   featured_image?: { src?: string, url?: string } | null
    * }} GiftVariant
    *
-   * @typedef {HTMLElement & {
-   *   renderCartBubble?: (itemCount: number, animate?: boolean) => void
-   * }} GiftCartIcon
-   *
-   * @typedef {{ item_count?: number }} ShopifyCart
+   * @typedef {{ item_count?: number, items?: Array<{ variant_id?: number, quantity?: number }> }} ShopifyCart
    *
    * @typedef {{
    *   cart_add_url?: string,
@@ -384,8 +380,32 @@
   }
 
   /**
+   * @typedef {{
+   *   sections?: Record<string, string>,
+   *   description?: string,
+   *   message?: string
+   * }} CartAddResponse
+   *
+   * @typedef {{
+   *   action?: string,
+   *   context?: string,
+   *   lines?: Array<{ merchandiseId: string, quantity: number }>,
+   *   promise?: Promise<{
+   *     cart: ShopifyCart & { totalQuantity: number },
+   *     detail: {
+   *       didError: boolean,
+   *       items?: ShopifyCart['items'],
+   *       itemCount: number,
+   *       sections?: Record<string, string>,
+   *       source: string
+   *     }
+   *   }>
+   * }} CartLinesUpdateEventShape
+   */
+
+  /**
    * @param {Response} response
-   * @returns {Promise<Record<string, string>>}
+   * @returns {Promise<CartAddResponse>}
    */
   async function parseJsonResponse(response) {
     const text = await response.text();
@@ -411,29 +431,80 @@
     return response.json();
   }
 
-  async function updateCartCount() {
+  /**
+   * @returns {string[]}
+   */
+  function getCartSectionIds() {
+    return Array.from(document.querySelectorAll(SELECTORS.cartItems))
+      .map((element) => (element instanceof HTMLElement ? element.dataset.sectionId : ''))
+      .filter(Boolean);
+  }
+
+  /**
+   * @param {Array<{ id: number, quantity: number }>} items
+   * @returns {Record<string, unknown>}
+   */
+  function createCartAddPayload(items) {
+    const payload = /** @type {Record<string, unknown>} */ ({ items });
+    const sectionIds = getCartSectionIds();
+
+    if (sectionIds.length > 0) {
+      payload.sections = sectionIds.join(',');
+      payload.sections_url = window.location.pathname;
+    }
+
+    return payload;
+  }
+
+  /**
+   * @param {ShopifyCart} cart
+   * @param {Record<string, string> | undefined} sections
+   * @param {Array<{ id: number, quantity: number }>} items
+   */
+  function dispatchCartLinesUpdate(cart, sections, items) {
+    const itemCount = Number(cart.item_count || 0);
+    const cartWithQuantity = Object.assign({}, cart, { totalQuantity: itemCount });
+    const event = /** @type {CustomEvent & CartLinesUpdateEventShape} */ (
+      new CustomEvent(CART_LINES_UPDATE_EVENT, { bubbles: true })
+    );
+
+    Object.defineProperties(event, {
+      action: { value: 'add' },
+      context: { value: 'product' },
+      lines: {
+        value: items.map((item) => ({
+          merchandiseId: String(item.id),
+          quantity: item.quantity,
+        })),
+      },
+      promise: {
+        value: Promise.resolve({
+          cart: cartWithQuantity,
+          detail: {
+            didError: false,
+            items: cart.items,
+            itemCount,
+            sections,
+            source: 'gifts-page',
+          },
+        }),
+      },
+    });
+
+    document.dispatchEvent(event);
+    document.dispatchEvent(new CustomEvent('cart:updated', { detail: { cart } }));
+  }
+
+  /**
+   * @param {Record<string, string> | undefined} sections
+   * @param {Array<{ id: number, quantity: number }>} items
+   */
+  async function refreshCartState(sections, items) {
     try {
       const cart = await fetchCart();
-      const itemCount = Number(cart.item_count || 0);
-      const count = itemCount < 100 ? String(itemCount) : '';
-
-      document.querySelectorAll(SELECTORS.cartCount).forEach((element) => {
-        element.textContent = count;
-        element.classList.toggle('hidden', itemCount === 0);
-      });
-
-      document.querySelectorAll(SELECTORS.cartIcon).forEach((cartIcon) => {
-        const icon = /** @type {GiftCartIcon} */ (cartIcon);
-        icon.classList.toggle('header-actions__cart-icon--has-cart', itemCount > 0);
-
-        if (typeof icon.renderCartBubble === 'function') {
-          icon.renderCartBubble(itemCount);
-        }
-      });
-
-      document.dispatchEvent(new CustomEvent('cart:updated', { detail: { cart } }));
+      dispatchCartLinesUpdate(cart, sections, items);
     } catch (error) {
-      console.warn('[gifts-page] Cart count could not be refreshed.', error);
+      console.warn('[gifts-page] Cart state could not be refreshed.', error);
     }
   }
 
@@ -494,7 +565,7 @@
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-        body: JSON.stringify({ items }),
+        body: JSON.stringify(createCartAddPayload(items)),
         credentials: 'same-origin',
       });
       const result = await parseJsonResponse(response);
@@ -505,7 +576,7 @@
 
       addLabel.textContent = 'ADDED';
       setStatus(popup, items.length > 1 ? BONUS_SUCCESS_MESSAGE : DEFAULT_SUCCESS_MESSAGE, 'success');
-      await updateCartCount();
+      await refreshCartState(result.sections, items);
 
       window.setTimeout(() => {
         resetAddButton(popup, addButton, addLabel, originalLabel);

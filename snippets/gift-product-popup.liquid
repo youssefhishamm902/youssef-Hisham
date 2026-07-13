@@ -1,11 +1,23 @@
 {% liquid
-  assign selected_variant = product.selected_or_first_available_variant
+  assign has_product = false
   assign popup_image = card_image
+  assign popup_image_url = fallback_image_url
+  assign popup_title = fallback_title | default: 'Gift pick'
+  assign popup_price = fallback_price | default: '980,00&euro;'
+  assign popup_description = fallback_description
 
-  if selected_variant.featured_image != blank
-    assign popup_image = selected_variant.featured_image
-  elsif popup_image == blank
-    assign popup_image = product.featured_image
+  if product != blank
+    assign has_product = true
+    assign selected_variant = product.selected_or_first_available_variant
+    assign popup_title = product.title
+    assign popup_price = selected_variant.price | money
+    assign popup_description = product.description | strip_html | truncatewords: 28
+
+    if selected_variant.featured_image != blank
+      assign popup_image = selected_variant.featured_image
+    elsif popup_image == blank
+      assign popup_image = product.featured_image
+    endif
   endif
 %}
 
@@ -17,13 +29,13 @@
   aria-hidden="true"
   aria-labelledby="GiftPopupTitle-{{ section_id }}-{{ block_id }}"
   data-gift-popup
-  data-product-handle="{{ product.handle | escape }}"
+  {% if has_product %}data-product-handle="{{ product.handle | escape }}"{% endif %}
 >
   <button class="gift-popup__backdrop" type="button" aria-label="Close product details" data-gift-popup-close></button>
 
   <div class="gift-popup__panel" role="document">
     <button class="gift-popup__close" type="button" aria-label="Close product details" data-gift-popup-close>
-      <span aria-hidden="true">×</span>
+      <span aria-hidden="true">&times;</span>
     </button>
 
     <div class="gift-popup__summary">
@@ -34,7 +46,17 @@
             src="{{ popup_image | image_url: width: 700 }}"
             width="{{ popup_image.width }}"
             height="{{ popup_image.height }}"
-            alt="{{ popup_image.alt | default: product.title | escape }}"
+            alt="{{ popup_image.alt | default: popup_title | escape }}"
+            loading="lazy"
+            data-gift-popup-image
+          >
+        {% elsif popup_image_url != blank %}
+          <img
+            class="gift-popup__image"
+            src="{{ popup_image_url }}"
+            width="700"
+            height="812"
+            alt="{{ popup_title | escape }}"
             loading="lazy"
             data-gift-popup-image
           >
@@ -45,95 +67,143 @@
 
       <div class="gift-popup__details">
         <h3 id="GiftPopupTitle-{{ section_id }}-{{ block_id }}" class="gift-popup__title">
-          {{ product.title | escape }}
+          {{ popup_title | escape }}
         </h3>
 
-        <p class="gift-popup__price" data-gift-popup-price>{{ selected_variant.price | money }}</p>
+        <p class="gift-popup__price" data-gift-popup-price>{{ popup_price }}</p>
 
-        {% if product.description != blank %}
+        {% if popup_description != blank %}
           <div class="gift-popup__description">
-            {{ product.description | strip_html | truncatewords: 28 }}
+            {{ popup_description }}
           </div>
         {% endif %}
       </div>
     </div>
 
-    <form class="gift-popup__form" data-gift-product-form novalidate>
-      <input type="hidden" name="id" value="{{ selected_variant.id }}" data-gift-variant-id>
+    {% if has_product %}
+      <form class="gift-popup__form" data-gift-product-form novalidate>
+        <input type="hidden" name="id" value="{{ selected_variant.id }}" data-gift-variant-id>
 
-      {% unless product.has_only_default_variant %}
-        <div class="gift-popup__options">
-          {% for option in product.options_with_values %}
-            {% liquid
-              assign option_index = forloop.index0
-              assign selected_value = selected_variant.options[option_index]
-              assign option_name = option.name | downcase
-              assign is_color = false
+        {% unless product.has_only_default_variant %}
+          <div class="gift-popup__options">
+            {% for option in product.options_with_values %}
+              {% liquid
+                assign option_index = forloop.index0
+                assign selected_value = selected_variant.options[option_index]
+                assign option_name = option.name | downcase
+                assign is_color = false
 
-              if option_name contains 'color' or option_name contains 'colour'
-                assign is_color = true
-              endif
-            %}
+                if option_name contains 'color' or option_name contains 'colour'
+                  assign is_color = true
+                endif
+              %}
 
-            <fieldset
-              class="gift-option-group"
-              data-gift-option-group
-              data-option-position="{{ option.position }}"
-            >
-              <legend class="gift-option-group__label">{{ option.name | escape }}</legend>
+              <fieldset
+                class="gift-option-group"
+                data-gift-option-group
+                data-option-position="{{ option.position }}"
+              >
+                <legend class="gift-option-group__label">{{ option.name | escape }}</legend>
 
-              {% if is_color %}
-                <div class="gift-color-options">
-                  {% for value in option.values %}
-                    <button
-                      type="button"
-                      class="gift-color-option"
-                      style="--gift-option-color: {{ value | downcase | escape }};"
-                      data-gift-option-value="{{ value | escape }}"
-                      aria-pressed="{% if value == selected_value %}true{% else %}false{% endif %}"
-                    >
-                      <span>{{ value | escape }}</span>
-                    </button>
-                  {% endfor %}
-                </div>
-              {% else %}
-                <div class="gift-select-wrap">
-                  <select
-                    class="gift-option-select"
-                    aria-label="Choose {{ option.name | escape }}"
-                    data-gift-option-select
-                  >
+                {% if is_color %}
+                  <div class="gift-color-options">
                     {% for value in option.values %}
-                      <option value="{{ value | escape }}" {% if value == selected_value %}selected{% endif %}>
-                        {{ value | escape }}
-                      </option>
+                      <button
+                        type="button"
+                        class="gift-color-option"
+                        style="--gift-option-color: {{ value | downcase | escape }};"
+                        data-gift-option-value="{{ value | escape }}"
+                        aria-pressed="{% if value == selected_value %}true{% else %}false{% endif %}"
+                      >
+                        <span>{{ value | escape }}</span>
+                      </button>
                     {% endfor %}
-                  </select>
-                  <span class="gift-select-wrap__arrow" aria-hidden="true"></span>
-                </div>
-              {% endif %}
-            </fieldset>
-          {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="gift-select-wrap">
+                    <select
+                      class="gift-option-select"
+                      aria-label="Choose {{ option.name | escape }}"
+                      data-gift-option-select
+                    >
+                      {% for value in option.values %}
+                        <option value="{{ value | escape }}" {% if value == selected_value %}selected{% endif %}>
+                          {{ value | escape }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                    <span class="gift-select-wrap__arrow" aria-hidden="true"></span>
+                  </div>
+                {% endif %}
+              </fieldset>
+            {% endfor %}
+          </div>
+        {% endunless %}
+
+        <button
+          class="gift-popup__add-button gifts-button gifts-button--black"
+          type="submit"
+          {% unless selected_variant.available %}disabled{% endunless %}
+          data-gift-add-button
+        >
+          <span data-gift-add-label>
+            {% if selected_variant.available %}ADD TO CART{% else %}SOLD OUT{% endif %}
+          </span>
+          <span class="gifts-button__arrow" aria-hidden="true">&rarr;</span>
+        </button>
+
+        <p class="gift-popup__status" role="status" aria-live="polite" data-gift-status></p>
+      </form>
+
+      <script type="application/json" data-gift-variants>
+        {{ product.variants | json }}
+      </script>
+    {% else %}
+      <div class="gift-popup__form">
+        <div class="gift-popup__options">
+          <fieldset class="gift-option-group" data-gift-option-group data-option-position="1">
+            <legend class="gift-option-group__label">Color</legend>
+            <div class="gift-color-options">
+              <button
+                type="button"
+                class="gift-color-option"
+                style="--gift-option-color: #1f5aa6;"
+                data-gift-option-value="Blue"
+                aria-pressed="true"
+              >
+                <span>Blue</span>
+              </button>
+              <button
+                type="button"
+                class="gift-color-option"
+                style="--gift-option-color: #000;"
+                data-gift-option-value="Black"
+                aria-pressed="false"
+              >
+                <span>Black</span>
+              </button>
+            </div>
+          </fieldset>
+
+          <fieldset class="gift-option-group" data-gift-option-group data-option-position="2">
+            <legend class="gift-option-group__label">Size</legend>
+            <div class="gift-select-wrap">
+              <select class="gift-option-select" aria-label="Choose size" data-gift-option-select>
+                <option selected>Choose your size</option>
+                <option>Small</option>
+                <option>Medium</option>
+                <option>Large</option>
+              </select>
+              <span class="gift-select-wrap__arrow" aria-hidden="true"></span>
+            </div>
+          </fieldset>
         </div>
-      {% endunless %}
 
-      <button
-        class="gift-popup__add-button gifts-button gifts-button--black"
-        type="submit"
-        {% unless selected_variant.available %}disabled{% endunless %}
-        data-gift-add-button
-      >
-        <span data-gift-add-label>
-          {% if selected_variant.available %}ADD TO CART{% else %}SOLD OUT{% endif %}
-        </span>
-        <span class="gifts-button__arrow" aria-hidden="true">→</span>
-      </button>
-
-      <p class="gift-popup__status" role="status" aria-live="polite" data-gift-status></p>
-    </form>
-
-    <script type="application/json" data-gift-variants>
-      {{ product.variants | json }}
-    </script>
+        <button class="gift-popup__add-button gifts-button gifts-button--black" type="button">
+          <span>ADD TO CART</span>
+          <span class="gifts-button__arrow" aria-hidden="true">&rarr;</span>
+        </button>
+      </div>
+    {% endif %}
   </div>
 </div>

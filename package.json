@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "dev": ".\\start-dev.cmd",
+    "theme:check": "shopify.cmd theme check"
+  }
+}

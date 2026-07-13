@@ -1,9 +1,31 @@
 {% liquid
-  assign bonus_product = section.settings.bonus_product
+  assign bonus_product = section.settings.bonus_product | default: all_products['dark-winter-jacket']
   assign bonus_variant = blank
 
   if bonus_product != blank
     assign bonus_variant = bonus_product.selected_or_first_available_variant
+
+    for variant in bonus_product.variants
+      assign has_bonus_color = false
+      assign has_bonus_size = false
+
+      for option_value in variant.options
+        assign normalized_option = option_value | strip | downcase
+
+        if normalized_option == 'black'
+          assign has_bonus_color = true
+        endif
+
+        if normalized_option == 'medium' or normalized_option == 'm'
+          assign has_bonus_size = true
+        endif
+      endfor
+
+      if variant.available and has_bonus_color and has_bonus_size
+        assign bonus_variant = variant
+        break
+      endif
+    endfor
   endif
 %}
 
@@ -26,6 +48,54 @@
         {% liquid
           assign product = block.settings.product
           assign card_image = block.settings.image
+          assign fallback_image_url = ''
+          assign fallback_title = ''
+          assign fallback_price = ''
+          assign fallback_description = ''
+          assign fallback_product_handle = ''
+
+          case forloop.index
+            when 1
+              assign fallback_product_handle = 'black-leather-bag'
+              assign fallback_image_url = 'FirstProduct.png' | asset_url
+              assign fallback_title = 'Leather shoulder bag'
+              assign fallback_price = '120,00&euro;'
+              assign fallback_description = 'A polished everyday bag with a structured shape, smooth finish, and enough room for daily essentials.'
+            when 2
+              assign fallback_product_handle = 'blue-silk-tuxedo'
+              assign fallback_image_url = 'secondProduct.png' | asset_url
+              assign fallback_title = 'Tailored jacket'
+              assign fallback_price = '980,00&euro;'
+              assign fallback_description = 'This one-piece swimsuit is crafted from jersey featuring an allover micro Monogram motif in relief.'
+            when 3
+              assign fallback_product_handle = 'chequered-red-shirt'
+              assign fallback_image_url = 'ThirdProduct.png' | asset_url
+              assign fallback_title = 'Checked flannel shirt'
+              assign fallback_price = '85,00&euro;'
+              assign fallback_description = 'A relaxed checked shirt cut from soft brushed cotton for easy layering through the colder months.'
+            when 4
+              assign fallback_product_handle = 'classic-leather-jacket'
+              assign fallback_image_url = 'FourthProduct.png' | asset_url
+              assign fallback_title = 'Leather biker jacket'
+              assign fallback_price = '560,00&euro;'
+              assign fallback_description = 'A clean leather jacket with classic hardware, quilted texture, and a close fit through the shoulders.'
+            when 5
+              assign fallback_product_handle = 'classic-varsity-top'
+              assign fallback_image_url = 'FifthProduct.png' | asset_url
+              assign fallback_title = 'Varsity bomber jacket'
+              assign fallback_price = '140,00&euro;'
+              assign fallback_description = 'A soft bomber jacket with contrast trims and a collegiate patch detail for casual gifting.'
+            when 6
+              assign fallback_product_handle = 'dark-denim-top'
+              assign fallback_image_url = 'SixthProduct.png' | asset_url
+              assign fallback_title = 'Denim jacket'
+              assign fallback_price = '110,00&euro;'
+              assign fallback_description = 'An easy denim layer with a bright, laid-back feel and a versatile cropped silhouette.'
+          endcase
+
+          if product == blank and fallback_product_handle != blank
+            assign product = all_products[fallback_product_handle]
+          endif
 
           if card_image == blank and product != blank
             assign card_image = product.featured_image
@@ -39,7 +109,16 @@
           {{ block.shopify_attributes }}
         >
           <div class="gift-look-card__media">
-            {% if card_image != blank %}
+            {% if fallback_image_url != blank %}
+              <img
+                class="gift-look-card__image"
+                src="{{ fallback_image_url }}"
+                width="1200"
+                height="1200"
+                loading="lazy"
+                alt="{{ fallback_title | escape }}"
+              >
+            {% elsif card_image != blank %}
               {{
                 card_image
                 | image_url: width: 1200
@@ -57,11 +136,11 @@
               </div>
             {% endif %}
 
-            {% if product != blank %}
+            {% if product != blank or fallback_image_url != blank %}
               <button
                 type="button"
                 class="gift-hotspot"
-                aria-label="Open {{ product.title | escape }} details"
+                aria-label="Open {% if product != blank %}{{ product.title | escape }}{% else %}{{ fallback_title | escape }}{% endif %} details"
                 aria-haspopup="dialog"
                 aria-controls="GiftPopup-{{ section.id }}-{{ block.id }}"
                 data-gift-popup-open="GiftPopup-{{ section.id }}-{{ block.id }}"
@@ -74,10 +153,14 @@
           </div>
         </article>
 
-        {% if product != blank %}
+        {% if product != blank or fallback_image_url != blank %}
           {% render 'gift-product-popup',
             product: product,
             card_image: card_image,
+            fallback_image_url: fallback_image_url,
+            fallback_title: fallback_title,
+            fallback_price: fallback_price,
+            fallback_description: fallback_description,
             section_id: section.id,
             block_id: block.id
           %}

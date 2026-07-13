@@ -19,6 +19,7 @@
         "product_1": {
           "type": "product",
           "settings": {
+            "product": "black-leather-bag",
             "hotspot_x": 63,
             "hotspot_y": 58
           }
@@ -26,6 +27,7 @@
         "product_2": {
           "type": "product",
           "settings": {
+            "product": "blue-silk-tuxedo",
             "hotspot_x": 86,
             "hotspot_y": 57
           }
@@ -33,6 +35,7 @@
         "product_3": {
           "type": "product",
           "settings": {
+            "product": "chequered-red-shirt",
             "hotspot_x": 45,
             "hotspot_y": 29
           }
@@ -40,6 +43,7 @@
         "product_4": {
           "type": "product",
           "settings": {
+            "product": "classic-leather-jacket",
             "hotspot_x": 72,
             "hotspot_y": 23
           }
@@ -47,6 +51,7 @@
         "product_5": {
           "type": "product",
           "settings": {
+            "product": "classic-varsity-top",
             "hotspot_x": 48,
             "hotspot_y": 25
           }
@@ -54,6 +59,7 @@
         "product_6": {
           "type": "product",
           "settings": {
+            "product": "dark-denim-top",
             "hotspot_x": 77,
             "hotspot_y": 39
           }
@@ -68,7 +74,8 @@
         "product_6"
       ],
       "settings": {
-        "heading": "Tisso vison in the wild"
+        "heading": "Tisso vison in the wild",
+        "bonus_product": "dark-winter-jacket"
       }
     }
   },

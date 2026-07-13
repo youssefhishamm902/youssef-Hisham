@@ -2,7 +2,7 @@
   'use strict';
 
   const BONUS_COLOR = 'black';
-  const BONUS_SIZE = 'medium';
+  const BONUS_SIZE_VALUES = ['medium', 'm'];
   const BONUS_SUCCESS_MESSAGE = 'Added to cart with the Soft Winter Jacket.';
   const DEFAULT_SUCCESS_MESSAGE = 'Added to cart.';
   const DEFAULT_ERROR_MESSAGE = 'The item could not be added.';
@@ -356,7 +356,7 @@
     if (!Array.isArray(variant?.options)) return false;
 
     const values = variant.options.map(normalize);
-    return values.includes(BONUS_COLOR) && values.includes(BONUS_SIZE);
+    return values.includes(BONUS_COLOR) && BONUS_SIZE_VALUES.some((size) => values.includes(size));
   }
 
   /**

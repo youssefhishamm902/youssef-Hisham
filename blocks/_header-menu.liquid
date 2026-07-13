@@ -45,18 +45,21 @@
             role="list"
           >
             {% for link in block_settings.menu.links %}
-              <li>
-                <a
-                  href="{{ link.url }}"
-                  id="MenuItem-{{ link.handle }}"
-                  class="menu-list__item"
-                  {% if link.current %}
-                    aria-current="page"
-                  {% endif %}
-                >
-                  {{- link.title -}}
-                </a>
-              </li>
+              {% assign link_title = link.title | strip | downcase %}
+              {% unless link_title == 'gifts' %}
+                <li>
+                  <a
+                    href="{{ link.url }}"
+                    id="MenuItem-{{ link.handle }}"
+                    class="menu-list__item"
+                    {% if link.current %}
+                      aria-current="page"
+                    {% endif %}
+                  >
+                    {{- link.title -}}
+                  </a>
+                </li>
+              {% endunless %}
             {% endfor %}
           </ul>
         </div>
@@ -93,51 +96,56 @@
 
     {% capture children %}
       {% for link in block_settings.menu.links %}
-        <li
-          role="presentation"
-          class="menu-list__list-item"
-          on:focus="/activate"
-          on:blur="/deactivate"
-          on:pointerenter="/activate"
-          on:pointerleave="/deactivate"
-        >
-          <a
-            href="{{ link.url }}"
-            data-skip-node-update="true"
-            class="menu-list__link{% if link.active %} menu-list__link--active{% endif %}"
-            {%- if link.links != blank -%}
-              aria-controls="submenu-{{ forloop.index }}"
-              aria-haspopup="true"
-              aria-expanded="false"
-            {%- endif -%}
-            {% if link.current %}
-              aria-current="page"
-            {% endif %}
-            ref="menuitem"
+        {% assign link_title = link.title | strip | downcase %}
+        {% if link_title == 'gifts' %}
+          {% continue %}
+        {% endif %}
+
+          <li
+            role="presentation"
+            class="menu-list__list-item"
+            on:focus="/activate"
+            on:blur="/deactivate"
+            on:pointerenter="/activate"
+            on:pointerleave="/deactivate"
           >
-            <span class="menu-list__link-title">{{- link.title -}}</span>
-          </a>
-          {%- if link.links != blank -%}
-            <div class="menu-list__submenu{{ background_color_classes }}" ref="submenu[]">
-              <div
-                id="submenu-{{ forloop.index }}"
-                class="menu-list__submenu-inner"
-                style="{% render 'submenu-font-styles', settings: block_settings %}"
-              >
-                {% assign list_id = 'MegaMenuList-' | append: forloop.index %}
-                <div class="mega-menu section section--full-width-margin section--{{ section.settings.section_width }}">
-                  <div
-                    class="mega-menu__grid"
-                    data-menu-grid-id="{{ list_id }}"
-                  >
-                    {% render 'mega-menu-list',
-                      parent_link: link,
-                      id: list_id,
-                      section: section,
-                      grid_columns_count: 6,
-                      grid_columns_count_tablet: 4,
-                      grid_columns_count_collection_images: 8,
-                      menu_content_type: menu_content_type,
+            <a
+              href="{{ link.url }}"
+              data-skip-node-update="true"
+              class="menu-list__link{% if link.active %} menu-list__link--active{% endif %}"
+              {%- if link.links != blank -%}
+                aria-controls="submenu-{{ forloop.index }}"
+                aria-haspopup="true"
+                aria-expanded="false"
+              {%- endif -%}
+              {% if link.current %}
+                aria-current="page"
+              {% endif %}
+              ref="menuitem"
+            >
+              <span class="menu-list__link-title">{{- link.title -}}</span>
+            </a>
+            {%- if link.links != blank -%}
+              <div class="menu-list__submenu{{ background_color_classes }}" ref="submenu[]">
+                <div
+                  id="submenu-{{ forloop.index }}"
+                  class="menu-list__submenu-inner"
+                  style="{% render 'submenu-font-styles', settings: block_settings %}"
+                >
+                  {% assign list_id = 'MegaMenuList-' | append: forloop.index %}
+                  <div class="mega-menu section section--full-width-margin section--{{ section.settings.section_width }}">
+                    <div
+                      class="mega-menu__grid"
+                      data-menu-grid-id="{{ list_id }}"
+                    >
+                      {% render 'mega-menu-list',
+                        parent_link: link,
+                        id: list_id,
+                        section: section,
+                        grid_columns_count: 6,
+                        grid_columns_count_tablet: 4,
+                        grid_columns_count_collection_images: 8,
+                        menu_content_type: menu_content_type,
                       content_aspect_ratio: ratio,
                       image_border_radius: image_border_radius
                     %}
